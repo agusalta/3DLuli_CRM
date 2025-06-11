@@ -76,18 +76,30 @@ export async function POST(request: Request) {
       );
     }
 
+    if (!description) {
+      console.error("❌ No se recibió descripción");
+      return NextResponse.json(
+        { error: "Description is required" },
+        { status: 400 }
+      );
+    }
+
     const octokit = new Octokit({ auth: process.env.GITHUB_TOKEN });
     const owner = "agusalta";
     const repo = process.env.GITHUB_REPO;
     const branch = process.env.GITHUB_BRANCH;
     const basePath = "src/content/work";
     const categoryKebab = category.toLowerCase().replace(/\s+/g, "-");
-    const assetsPath = `/assets/${categoryKebab}`;
+    const categoryPrefix = category.substring(0, 2).toUpperCase();
+    const assetsPath = `public/assets/${categoryKebab}`;
+    const imageUrlPath = `/assets/${categoryKebab}`;
 
     console.log("📁 Configuración de rutas:", {
       basePath,
       categoryKebab,
+      categoryPrefix,
       assetsPath,
+      imageUrlPath,
     });
 
     const createdFiles: string[] = [];
@@ -126,6 +138,7 @@ export async function POST(request: Request) {
     for (let i = 0; i < images.length; i++) {
       const imageNumber = (i + 1).toString();
       const imagePath = `${assetsPath}/${imageNumber}.webp`;
+      const imageUrl = `${imageUrlPath}/${imageNumber}.webp`;
 
       try {
         console.log(`🖼️ Procesando imagen ${imageNumber}...`);
@@ -204,28 +217,25 @@ export async function POST(request: Request) {
     for (let i = 0; i < images.length; i++) {
       const imgAlt = imgAlts[i];
       const fileNumber = (i + 1).toString();
-      const categoryPrefix = category.substring(0, 2).toUpperCase();
       const fileName = `PG${categoryPrefix}${fileNumber}.md`;
       const filePath = `${basePath}/${fileName}`;
       const imageNumber = (i + 1).toString();
-      const imagePath = `${assetsPath}/${imageNumber}.webp`;
+      const imageUrl = `${imageUrlPath}/${imageNumber}.webp`;
 
       const content = [
         "---",
-        `title: "${title}"`,
-        subtitle ? `subtitle: "${subtitle}"` : null,
-        `category: ${category}`,
+        `title: "${imageNumber}"`,
+        `subtitle: "${subtitle}"`,
         `publishDate: ${publishDate}`,
-        `img: ${imagePath}`,
+        `img: ${imageUrl}`,
         `img_alt: "${imgAlt}"`,
+        `category: ${categoryKebab}`,
+        `description: |`,
+        `  ${description}`,
         "tags:",
         ...tags.map((tag) => `  - ${tag}`),
         "---",
-        "",
-        description,
-      ]
-        .filter(Boolean)
-        .join("\n");
+      ].join("\n");
 
       try {
         // Obtener el SHA del archivo si existe
