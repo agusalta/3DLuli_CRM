@@ -110,7 +110,6 @@ export default function Component() {
 
   const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(event.target.files || []);
-    const webpFiles = files.filter((file) => file.type === "image/webp");
 
     // Obtener las primeras dos letras del título del proyecto
     const projectPrefix = formData.title
@@ -119,7 +118,7 @@ export default function Component() {
       .replace(/[^a-z]/g, "");
 
     // Renombrar los archivos con el formato PG + primeras dos letras + número
-    const renamedFiles = webpFiles.map((file, index) => {
+    const renamedFiles = files.map((file, index) => {
       const newName = `PG${projectPrefix}${index + 1}.webp`;
       return new File([file], newName, { type: file.type });
     });
@@ -357,17 +356,18 @@ export default function Component() {
                       id="images"
                       type="file"
                       multiple
-                      accept=".webp"
+                      accept="image/*"
                       onChange={handleFileUpload}
                       className="hidden"
                     />
                     <label htmlFor="images" className="cursor-pointer">
                       <Upload className="mx-auto h-12 w-12 text-gray-400 mb-4" />
                       <p className="text-sm text-gray-600">
-                        Click to upload .webp images or drag and drop
+                        Click to upload images or drag and drop
                       </p>
                       <p className="text-xs text-gray-500 mt-1">
-                        Only .webp files are accepted
+                        Common image formats accepted (will be converted to
+                        WebP)
                       </p>
                     </label>
                   </div>
