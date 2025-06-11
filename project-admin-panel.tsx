@@ -17,6 +17,11 @@ import {
 } from "@/components/ui/popover";
 import { format } from "date-fns";
 
+// Función auxiliar para sanitizar texto
+const sanitizeText = (text: string): string => {
+  return text.replace(/["']/g, ""); // Elimina comillas dobles y simples
+};
+
 interface ProjectFormData {
   title: string;
   subtitle: string;
@@ -87,6 +92,11 @@ export default function Component() {
     field: keyof ProjectFormData,
     value: string | Date | undefined
   ) => {
+    // Si el valor es un string, sanitizarlo
+    if (typeof value === "string") {
+      value = sanitizeText(value);
+    }
+
     setFormData((prev) => ({
       ...prev,
       [field]: value,
@@ -94,7 +104,8 @@ export default function Component() {
   };
 
   const handleCategoryBlur = (value: string) => {
-    const kebabCase = value
+    const sanitizedValue = sanitizeText(value);
+    const kebabCase = sanitizedValue
       .toLowerCase()
       .trim()
       .replace(/\s+/g, "-")
@@ -277,6 +288,11 @@ export default function Component() {
                     value={formData.title}
                     onChange={(e) => handleInputChange("title", e.target.value)}
                     placeholder="Enter project title"
+                    onKeyDown={(e) => {
+                      if (e.key === '"' || e.key === "'") {
+                        e.preventDefault();
+                      }
+                    }}
                   />
                   <p className="text-xs text-gray-500">
                     Example: "Modern Architecture Portfolio"
@@ -293,6 +309,11 @@ export default function Component() {
                       handleInputChange("subtitle", e.target.value)
                     }
                     placeholder="Enter subtitle (applies to cover image)"
+                    onKeyDown={(e) => {
+                      if (e.key === '"' || e.key === "'") {
+                        e.preventDefault();
+                      }
+                    }}
                   />
                   <p className="text-xs text-gray-500">
                     Example: "A collection of contemporary designs"
@@ -310,6 +331,11 @@ export default function Component() {
                     }
                     onBlur={(e) => handleCategoryBlur(e.target.value)}
                     placeholder="Enter category (will be converted to kebab-case)"
+                    onKeyDown={(e) => {
+                      if (e.key === '"' || e.key === "'") {
+                        e.preventDefault();
+                      }
+                    }}
                   />
                   <p className="text-xs text-gray-500">
                     Example: "Web Design" → "web-design"
@@ -383,6 +409,11 @@ export default function Component() {
                       handleInputChange("imageAlt", e.target.value)
                     }
                     placeholder="Alt text for all images"
+                    onKeyDown={(e) => {
+                      if (e.key === '"' || e.key === "'") {
+                        e.preventDefault();
+                      }
+                    }}
                   />
                   <p className="text-xs text-gray-500">
                     Example: "Interior design of modern apartment living room"
@@ -400,6 +431,11 @@ export default function Component() {
                     }
                     placeholder="Enter description (Markdown supported)"
                     rows={6}
+                    onKeyDown={(e) => {
+                      if (e.key === '"' || e.key === "'") {
+                        e.preventDefault();
+                      }
+                    }}
                   />
                   <p className="text-xs text-gray-500">
                     Example: "This project showcases **modern design** with a
@@ -415,6 +451,11 @@ export default function Component() {
                     value={formData.tags}
                     onChange={(e) => handleInputChange("tags", e.target.value)}
                     placeholder="Enter tags separated by commas"
+                    onKeyDown={(e) => {
+                      if (e.key === '"' || e.key === "'") {
+                        e.preventDefault();
+                      }
+                    }}
                   />
                   <p className="text-xs text-gray-500">
                     Example: "design, portfolio, architecture"
