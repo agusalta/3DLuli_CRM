@@ -104,33 +104,77 @@ export async function POST(request: Request) {
 
     const createdFiles: string[] = [];
 
-    // Verificar que la carpeta de assets existe
-    try {
-      await octokit.repos.getContent({
-        owner,
-        repo,
-        path: "public/assets",
-        ref: branch,
-      });
-    } catch (error) {
-      console.error("❌ La carpeta public/assets no existe en el repositorio");
-      return NextResponse.json(
-        { error: "Assets directory not found in repository" },
-        { status: 500 }
-      );
-    }
+    // Función auxiliar para crear directorios
+    const createDirectory = async (path: string, message: string) => {
+      try {
+        await octokit.repos.createOrUpdateFileContents({
+          owner,
+          repo,
+          path: `${path}/.gitkeep`,
+          message,
+          content: Buffer.from("").toString("base64"),
+          branch,
+        });
+        console.log(`✅ Directorio creado: ${path}`);
+        return true;
+      } catch (error: any) {
+        console.error(`❌ Error al crear directorio ${path}:`, error.message);
+        if (error.response) {
+          console.error("Respuesta de GitHub:", error.response.data);
+        }
+        return false;
+      }
+    };
 
-    // Verificar si existe la carpeta de la categoría
+    // Crear directorios necesarios
     try {
-      await octokit.repos.getContent({
-        owner,
-        repo,
-        path: assetsPath,
-        ref: branch,
-      });
-    } catch (error) {
-      console.log(
-        `📁 La carpeta ${assetsPath} no existe, se creará con las imágenes`
+      // Intentar crear public/assets
+      try {
+        await octokit.repos.getContent({
+          owner,
+          repo,
+          path: "public/assets",
+          ref: branch,
+        });
+        console.log("✅ Directorio public/assets existe");
+      } catch (error) {
+        console.log("📁 Creando directorio public/assets...");
+        const success = await createDirectory(
+          "public/assets",
+          "Create assets directory"
+        );
+        if (!success) {
+          throw new Error("No se pudo crear el directorio public/assets");
+        }
+      }
+
+      // Intentar crear el directorio de la categoría
+      try {
+        await octokit.repos.getContent({
+          owner,
+          repo,
+          path: assetsPath,
+          ref: branch,
+        });
+        console.log(`✅ Directorio ${assetsPath} existe`);
+      } catch (error) {
+        console.log(`📁 Creando directorio ${assetsPath}...`);
+        const success = await createDirectory(
+          assetsPath,
+          `Create ${categoryKebab} directory`
+        );
+        if (!success) {
+          throw new Error(`No se pudo crear el directorio ${assetsPath}`);
+        }
+      }
+    } catch (error: any) {
+      console.error("❌ Error al crear directorios:", error.message);
+      return NextResponse.json(
+        {
+          error: "Failed to create required directories",
+          details: error.message || "Unknown error",
+        },
+        { status: 500 }
       );
     }
 
