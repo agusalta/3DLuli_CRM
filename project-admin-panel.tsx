@@ -53,17 +53,25 @@ export default function Component() {
       .map((tag) => tag.trim())
       .filter((tag) => tag);
 
+    // Obtener las primeras dos letras del título del proyecto
+    const projectPrefix = formData.title
+      .substring(0, 2)
+      .toLowerCase()
+      .replace(/[^a-z]/g, "");
+
     const frontmatter = [
       "---",
       `title: "${formData.title}"`,
       formData.subtitle ? `subtitle: "${formData.subtitle}"` : null,
       `category: ${formData.category || ""}`,
       formData.publishDate
-        ? `publishDate: ${format(formData.publishDate, "yyyy-MM-dd")} 00:00:00`
+        ? `publishDate: ${format(formData.publishDate, "yyyy-MM-dd")}`
         : "publishDate: ",
-      `image: ${formData.images.length > 0 ? formData.images[0].name : ""}`,
-      `alt: "${formData.imageAlt}"`,
-      tagsArray.length > 0 ? "tags:" : "tags: []",
+      `img: "/assets/${formData.category}/${
+        formData.images.length > 0 ? `PG${projectPrefix}1.webp` : ""
+      }"`,
+      `img_alt: "${formData.imageAlt}"`,
+      "tags:",
       ...tagsArray.map((tag) => `  - ${tag}`),
       "---",
       "",
@@ -104,10 +112,30 @@ export default function Component() {
     const files = Array.from(event.target.files || []);
     const webpFiles = files.filter((file) => file.type === "image/webp");
 
-    setFormData((prev) => ({
-      ...prev,
-      images: [...prev.images, ...webpFiles],
-    }));
+    // Obtener las primeras dos letras del título del proyecto
+    const projectPrefix = formData.title
+      .substring(0, 2)
+      .toLowerCase()
+      .replace(/[^a-z]/g, "");
+
+    // Renombrar los archivos con el formato PG + primeras dos letras + número
+    const renamedFiles = webpFiles.map((file, index) => {
+      const newName = `PG${projectPrefix}${index + 1}.webp`;
+      return new File([file], newName, { type: file.type });
+    });
+
+    // Si es la primera imagen, asegurarse de que también esté en la lista de imágenes
+    if (formData.images.length === 0 && renamedFiles.length > 0) {
+      setFormData((prev) => ({
+        ...prev,
+        images: [...renamedFiles],
+      }));
+    } else {
+      setFormData((prev) => ({
+        ...prev,
+        images: [...prev.images, ...renamedFiles],
+      }));
+    }
   };
 
   const removeImage = (index: number) => {

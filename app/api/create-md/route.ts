@@ -82,7 +82,7 @@ export async function POST(request: Request) {
     const branch = process.env.GITHUB_BRANCH;
     const basePath = "src/content/work";
     const categoryKebab = category.toLowerCase().replace(/\s+/g, "-");
-    const assetsPath = `public/assets/${categoryKebab}`;
+    const assetsPath = `/assets/${categoryKebab}`;
 
     console.log("📁 Configuración de rutas:", {
       basePath,
@@ -92,7 +92,23 @@ export async function POST(request: Request) {
 
     const createdFiles: string[] = [];
 
-    // Crear la carpeta de assets si no existe
+    // Verificar que la carpeta de assets existe
+    try {
+      await octokit.repos.getContent({
+        owner,
+        repo,
+        path: "public/assets",
+        ref: branch,
+      });
+    } catch (error) {
+      console.error("❌ La carpeta public/assets no existe en el repositorio");
+      return NextResponse.json(
+        { error: "Assets directory not found in repository" },
+        { status: 500 }
+      );
+    }
+
+    // Verificar si existe la carpeta de la categoría
     try {
       await octokit.repos.getContent({
         owner,
@@ -101,15 +117,9 @@ export async function POST(request: Request) {
         ref: branch,
       });
     } catch (error) {
-      // Si la carpeta no existe, la creamos
-      await octokit.repos.createOrUpdateFileContents({
-        owner,
-        repo,
-        path: `${assetsPath}/.gitkeep`,
-        message: `Create ${categoryKebab} assets directory`,
-        content: Buffer.from("").toString("base64"),
-        branch,
-      });
+      console.log(
+        `📁 La carpeta ${assetsPath} no existe, se creará con las imágenes`
+      );
     }
 
     // Procesar y subir cada imagen
@@ -193,18 +203,19 @@ export async function POST(request: Request) {
     // Crear un archivo Markdown para cada imagen
     for (let i = 0; i < images.length; i++) {
       const imgAlt = imgAlts[i];
-      const fileNumber = (i + 1).toString().padStart(2, "0");
-      const fileName = `${title.substring(0, 2).toLowerCase()}${fileNumber}.md`;
+      const fileNumber = (i + 1).toString();
+      const categoryPrefix = category.substring(0, 2).toUpperCase();
+      const fileName = `PG${categoryPrefix}${fileNumber}.md`;
       const filePath = `${basePath}/${fileName}`;
       const imageNumber = (i + 1).toString();
       const imagePath = `${assetsPath}/${imageNumber}.webp`;
 
       const content = [
         "---",
-        `title: "${i + 1}"`,
-        `subtitle: "${subtitle}"`,
+        `title: "${title}"`,
+        subtitle ? `subtitle: "${subtitle}"` : null,
         `category: ${category}`,
-        `date: ${publishDate}`,
+        `publishDate: ${publishDate}`,
         `img: ${imagePath}`,
         `img_alt: "${imgAlt}"`,
         "tags:",
@@ -212,7 +223,9 @@ export async function POST(request: Request) {
         "---",
         "",
         description,
-      ].join("\n");
+      ]
+        .filter(Boolean)
+        .join("\n");
 
       try {
         // Obtener el SHA del archivo si existe
